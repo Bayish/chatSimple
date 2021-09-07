@@ -1,0 +1,43 @@
+.container .header{
+    display: none;
+}
+.profile{
+    color: white;
+    height: 50px;
+    font-size: 18px;
+    font-weight: bolder;
+}
+
+.button-profile {
+    background: url("../images/cog-solid.svg") 0 50% no-repeat;
+    width: 30px;
+    height: 30px;
+    margin: 1px 1px 2px 24px;
+}
+.nameDiv{
+    color: white;
+    font-weight: bold;
+    text-align: center;
+}
+
+
+#makePost{
+    color: black;
+}
+
+.buttonPost{
+    background: url("../images/comment-alt-regular.svg")  no-repeat, lightblue;
+    background-size: cover;
+    width: 40px;
+    height: 40px;
+    border: none;
+}
+
+#buttonAddUser{
+    background: url("../images/chalkboard-teacher-solid.svg") no-repeat 0 50%;
+    width: 40px;
+    height: 40px;
+    border: none;
+}
+
+

@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+    <script>
+        $(() => {
+            const generalUrl = 'http://146.185.154.90:8000/blog/'
+            const inputEmail = $('#inputEmail');
+            $('.container-2').css({display: 'none '});
+            const div = $('.post');
+            const innerDiv = $('<div>').addClass('row');
+            const addFriend = $('.addFriend').css({display: 'none '});
+            $('.header').css({display: 'none '});
+            $('.change-profile').css({display: 'none '});
+            $('.friends-block').css({display: 'none '});
+
+            let data;
+
+            const changeProfileName = (firstName, lastName) => {
+                $('#firstName').text(firstName);
+                $('#lastName').text(lastName)
+            }
+
+            const setMessageToBody = (responses, div) => {
+                for(let i = 0; i < responses.length; i++){
+                    const response = responses[i]
+                    const col = $('<div>').addClass('col-sm-12 mt-4 border border-danger rounded-left bg-danger')
+                    const colInner = $('<div>').addClass('row mt-2')
+                    const author = $('<div>').text(response.user.firstName + ' ' + response.user.lastName).addClass(' nameDiv pl-4');
+                    const messages = $('<div>').text(response.message).addClass('col-md-12');
+                    col.append(author).append(colInner.append(messages))
+                    innerDiv.prepend(col);
+                }
+                div.prepend(innerDiv)
+            }
+
+            const run = async(typeOfRequest, lastWord) => {
+                try{
+                    const url = generalUrl + inputEmail.val() + lastWord
+                    const responses = await typeOfRequest(url);
+                    changeProfileName(responses.firstName, responses.lastName);
+                    const response = responses[responses.length - 1];
+                    data = response.datetime;
+                    console.log(data);
+
+                    if(lastWord === '/posts'){
+                        setMessageToBody(responses, div);
+                        setInterval(async () => {
+                            const newMessages = await $.get(generalUrl + inputEmail.val() + '/posts?datetime=' + data);
+                            if(newMessages.length > 0){
+                                setMessageToBody(newMessages, div);
+                                const newMessage = newMessages[newMessages.length -1];
+                                data = newMessage.datetime
+                            }
+                        },2000)
+                    }else if(lastWord === '/subscribe'){
+                        const ul = $('<ul>').addClass('friends-list')
+                        for(let i = 0; i < responses.length; i++){
+                            ul.append($('<li>').text(responses[i].firstName + ' ' + responses[i].lastName))
+                        }
+                        $('.listFriends').html(ul)
+                    }
+
+                }catch(e) {
+                    console.log('error', e)
+                }
+            };
+
+            $('#emailButton').on('click', () => {
+                $('.container-2').css({display: 'block'});
+                run($.get, '/profile');
+                run($.get, '/posts');
+                $('.open-account').toggle();
+                $('.header').toggle();
+            })
+
+            $('#buttonProfile').on('click', (e) => {
+                e.preventDefault();
+                $('.change-profile').toggle()
+                $('#changeProfileButton').on('click', (event) => {
+                    event.preventDefault();
+                    const dataName = {
+                        firstName: $('#changeFirstName').val(),
+                        lastName: $('#changeLastName').val(),
+                    }
+                    $.post(generalUrl + inputEmail.val() + '/profile', dataName)
+                    run($.get, '/profile');
+                    $('.change-profile').toggle()
+                });
+            });
+
+            $('#btnPost').on('click', (e) => {
+                e.preventDefault();
+                const inputPost = $('#inputPost');
+                const message = {message: inputPost.val()};
+                $.post(generalUrl + inputEmail.val() + '/posts', message);
+                inputPost.val('');
+
+            })
+
+            $('#buttonAddUser').on('click', ()=>{
+                addFriend.toggle();
+                const inputEmailFriend = $('#inputFriendEmail');
+                $('#emailFriendButton').on('click', (e) => {
+                    e.preventDefault();
+                    const emailFriend = {email: inputEmailFriend.val()}
+                    $.post(generalUrl + inputEmail.val() + '/subscribe', emailFriend, (e)=>{
+                        if(e.error !== undefined){
+                            alert('Try again')
+                        }else{
+                            addFriend.css({display: 'none'})
+                        }
+                    });
+
+                    inputEmailFriend.val('');
+                    run($.get, '/posts');
+                })
+            });
+
+            $('#watchYourFriends').on('click', (e) => {
+                e.preventDefault();
+                $('.friends-block').toggle();
+                run($.get, '/subscribe');
+                $('#delete').on('click', (event)=> {
+                    event.preventDefault();
+                    $.post(generalUrl + inputEmail.val() + '/subscribe/delete')
+                    run($.get, '/posts');
+                    $('.friends-list').text('');
+                })
+            })
+        });
+    </script>
+</head>
+<body>
+<div class="open-account container mt-4">
+    <div class="input-group flex-nowrap">
+        <div class="input-group-prepend">
+            <span class="input-group-text" id="addon-wrapping">@</span>
+        </div>
+        <input type="text" class="form-control" id="inputEmail" placeholder="Username" aria-label="Username" aria-describedby="addon-wrapping">
+        <button type="button" class="ml-1 btn btn-primary" id="emailButton">Enter your email</button>
+    </div>
+</div>
+<div class="container container-2">
+    <div class="d-flex bd-highlight header mt-4">
+        <div class="pl-4 p-2 flex-grow-1  bg-primary  text-uppercase profile"><span id="firstName"></span>
+            <span id="lastName"></span></div>
+        <div class="p-2 bd-highlight"><button type="button" class="btn btn-warning button-profile col-md-1" id="buttonProfile"></button></div>
+        <div class="ml-4 p-2 bd-highlight"><button type="button" class="btn btn-warning button-profile col-md-3" id="buttonAddUser"></button></div>
+    </div>
+    <div class="addFriend">
+        <div class="input-group flex-nowrap">
+            <div class="input-group-prepend">
+                <span class="input-group-text" >@</span>
+            </div>
+            <input type="text" class="form-control" id="inputFriendEmail" placeholder="Username" aria-label="Username" aria-describedby="addon-wrapping">
+            <button type="button" class="ml-1 btn btn-primary" id="emailFriendButton">Enter your friend's email</button>
+        </div>
+    </div>
+    <div class="change-profile mt-4">
+        <form>
+            <div class="row">
+                <div class="col">
+                    <input type="text" class="form-control" placeholder="First name" id="changeFirstName">
+                </div>
+                <div class="col">
+                    <input type="text" class="form-control" placeholder="Last name" id="changeLastName">
+                </div>
+                <button type="button" class="ml-1 btn btn-primary" id="changeProfileButton">save</button>
+            </div>
+        </form>
+    </div>
+    <div class="watch-your-friends mt-4">
+        <button type="button" class="mt-4 ml-1 btn btn-primary" id="watchYourFriends">Watch Your friends</button>
+        <div class="friends-block">
+            <div class="listFriends"></div>
+            <button type="button" class="ml-4 btn btn-primary mt-4" id="delete">Delete all your friends</button>
+        </div>
+    </div>
+    <div class="row justify-content-md-center" id="makePost">
+        <div class="col">
+            <form class="row mb-4 align-items-center mt-4" id="task-form">
+                <div class="col-sm-2  font-weight-bold">
+                    Enter your Post:
+                </div>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control" id="inputPost">
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary buttonPost" id="btnPost"></button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="post"></div>
+</div>
+</body>
+</html>
